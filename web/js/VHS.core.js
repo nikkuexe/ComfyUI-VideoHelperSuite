@@ -1059,7 +1059,6 @@ function addLoadVideoCommon(nodeType, nodeData) {
     addVideoPreview(nodeType);
     addPreviewOptions(nodeType);
     chainCallback(nodeType.prototype, "onNodeCreated", function() {
-        const pathWidget = this.widgets.find((w) => w.name === "video");
         const frameCapWidget = this.widgets.find((w) => w.name === 'frame_load_cap');
         const frameSkipWidget = this.widgets.find((w) => w.name === 'skip_first_frames');
         const rateWidget = this.widgets.find((w) => w.name === 'force_rate');
@@ -1088,7 +1087,7 @@ function addLoadVideoCommon(nodeType, nodeData) {
 
         //do first load
         requestAnimationFrame(() => {
-            for (let w of [frameCapWidget, frameSkipWidget, rateWidget, pathWidget, skipWidget]) {
+            for (let w of [frameCapWidget, frameSkipWidget, rateWidget, skipWidget]) {
                 w.callback(w.value, null, this);
             }
         });
