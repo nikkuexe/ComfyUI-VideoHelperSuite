@@ -287,11 +287,24 @@ class LoadVideoPath:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "video": ("STRING", {"placeholder": "X://insert/path/here.mp4", "vhs_path_extensions": video_extensions}),
+                "video": ("STRING", {"force_input": True}),
                 "force_rate": ("INT", {"default": 0, "min": 0, "max": 60, "step": 1}),
-                 "force_size": (["Disabled", "Custom Height", "Custom Width", "Custom", "256x?", "?x256", "256x256", "512x?", "?x512", "512x512"],),
-                 "custom_width": ("INT", {"default": 512, "min": 0, "max": DIMMAX, "step": 8}),
-                 "custom_height": ("INT", {"default": 512, "min": 0, "max": DIMMAX, "step": 8}),
+                "force_size": (
+                    [
+                        "Disabled",
+                        "Custom Height",
+                        "Custom Width",
+                        "Custom",
+                        "256x?",
+                        "?x256",
+                        "256x256",
+                        "512x?",
+                        "?x512",
+                        "512x512",
+                    ],
+                ),
+                "custom_width": ("INT", {"default": 512, "min": 0, "max": DIMMAX, "step": 8}),
+                "custom_height": ("INT", {"default": 512, "min": 0, "max": DIMMAX, "step": 8}),
                 "frame_load_cap": ("INT", {"default": 0, "min": 0, "max": BIGMAX, "step": 1}),
                 "skip_first_frames": ("INT", {"default": 0, "min": 0, "max": BIGMAX, "step": 1}),
                 "select_every_nth": ("INT", {"default": 1, "min": 1, "max": BIGMAX, "step": 1}),
@@ -312,17 +325,23 @@ class LoadVideoPath:
 
     FUNCTION = "load_video"
 
-    def load_video(self, **kwargs):
-        if kwargs['video'] is None or validate_path(kwargs['video']) != True:
-            raise Exception("video is not a valid path: " + kwargs['video'])
-        if is_url(kwargs['video']):
-            kwargs['video'] = try_download_video(kwargs['video']) or kwargs['video']
+    def load_video(self, video, **kwargs):
+        if video is None or validate_path(video) != True:
+            raise Exception("video is not a valid path: " + str(video))
+        if is_url(video):
+            video = try_download_video(video) or video
+        kwargs['video'] = video
         return load_video_cv(**kwargs)
 
     @classmethod
     def IS_CHANGED(s, video, **kwargs):
-        return hash_path(video)
+        if video is not None:
+            return hash_path(video)
+        else:
+            return "No video provided"
 
     @classmethod
     def VALIDATE_INPUTS(s, video, **kwargs):
+        if video is None:
+            return "No video file provided."
         return validate_path(video, allow_none=True)
