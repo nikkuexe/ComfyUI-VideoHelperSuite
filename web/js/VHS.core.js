@@ -1320,27 +1320,52 @@ app.registerExtension({
                     this.setSize(this.computeSize())
                 })
             }
-            chainCallback(nodeType.prototype, "onNodeCreated", function () {
-                let new_widgets = []
+            chainCallback(nodeType.prototype, "onNodeCreated", function() {
+                // Ensure that inputs are properly initialized
+                if (!this.inputs || this.inputs.length === 0) {
+                    const inputDefs = this.constructor.nodeData.input;
+                    if (inputDefs && inputDefs.required) {
+                        for (const [name, def] of Object.entries(inputDefs.required)) {
+                            const type = def[0];
+                            const options = def[1] || {};
+                            const isInputForced = options.force_input === true;
+                            if (isInputForced) {
+                                this.addInput(name, type);
+                            }
+                        }
+                    }
+                    if (inputDefs && inputDefs.optional) {
+                        for (const [name, def] of Object.entries(inputDefs.optional)) {
+                            const type = def[0];
+                            const options = def[1] || {};
+                            const isInputForced = options.force_input === true;
+                            if (isInputForced) {
+                                this.addInput(name, type);
+                            }
+                        }
+                    }
+                }
+
+                let new_widgets = [];
                 if (this.widgets) {
                     for (let w of this.widgets) {
-                        // Skip the 'video' widget specifically
                         if (w.name === 'video') {
                             continue;
                         }
-                        let input = this.constructor.nodeData.input
-                        let config = input?.required[w.name] ?? input.optional[w.name]
+                        let input = this.constructor.nodeData.input;
+                        let config = input?.required[w.name] ?? input.optional[w.name];
                         if (!config) {
-                            continue
+                            continue;
                         }
-                        if (w?.type == "text" && config[1].vhs_path_extensions) {
+                        if (w?.type == "text" && config[1]?.vhs_path_extensions) {
                             new_widgets.push(app.widgets.VHSPATH({}, w.name, ["VHSPATH", config[1]]));
                         } else {
-                            new_widgets.push(w)
+                            new_widgets.push(w);
                         }
                     }
                     this.widgets = new_widgets;
                 }
+
             });
         }
         if (nodeData?.name == "VHS_LoadImages") {
