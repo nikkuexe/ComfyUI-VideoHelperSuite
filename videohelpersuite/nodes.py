@@ -319,20 +319,25 @@ class VideoCombine:
 
         # Determine counter and file suffix
         if use_counter:
-            # Comfy counter workaround
-            max_counter = 0
+            if meta_batch is not None and hasattr(meta_batch, 'counter'):
+                counter = meta_batch.counter
 
-            # Loop through the existing files to find the maximum counter
-            matcher = re.compile(f"{re.escape(filename)}_(\\d+)\\D*\\..+", re.IGNORECASE)
-            for existing_file in os.listdir(full_output_folder):
-                match = matcher.fullmatch(existing_file)
-                if match:
-                    file_counter = int(match.group(1))
-                    if file_counter > max_counter:
-                        max_counter = file_counter
+            else:
+                # Comfy counter workaround
+                max_counter = 0
 
-            # Increment the counter to get the next available value
-            counter = max_counter + 1
+                # Loop through the existing files to find the maximum counter
+                matcher = re.compile(f"{re.escape(filename)}_(\\d+)\\D*\\..+", re.IGNORECASE)
+                for existing_file in os.listdir(full_output_folder):
+                    match = matcher.fullmatch(existing_file)
+                    if match:
+                        file_counter = int(match.group(1))
+                        if file_counter > max_counter:
+                            max_counter = file_counter
+
+                # Increment the counter to get the next available value
+                counter = max_counter + 1
+                meta_batch.counter = counter
             file_suffix = f"_{counter:05}"
         else:
             counter = ''
