@@ -317,32 +317,41 @@ class VideoCombine:
                 video_metadata[x] = extra_pnginfo[x]
         metadata.add_text("CreationTime", datetime.datetime.now().isoformat(" ")[:19])
 
+        # Determine counter and file suffix
         if use_counter:
-            if meta_batch is not None and unique_id in meta_batch.outputs:
-                (counter, output_process) = meta_batch.outputs[unique_id]
-            else:
-                # comfy counter workaround
-                max_counter = 0
+            # Comfy counter workaround
+            max_counter = 0
 
-                # Loop through the existing files
-                matcher = re.compile(f"{re.escape(filename)}_(\\d+)\\D*\\..+", re.IGNORECASE)
-                for existing_file in os.listdir(full_output_folder):
-                    # Check if the file matches the expected format
-                    match = matcher.fullmatch(existing_file)
-                    if match:
-                        # Extract the numeric portion of the filename
-                        file_counter = int(match.group(1))
-                        # Update the maximum counter value if necessary
-                        if file_counter > max_counter:
-                            max_counter = file_counter
+            # Loop through the existing files to find the maximum counter
+            matcher = re.compile(f"{re.escape(filename)}_(\\d+)\\D*\\..+", re.IGNORECASE)
+            for existing_file in os.listdir(full_output_folder):
+                match = matcher.fullmatch(existing_file)
+                if match:
+                    file_counter = int(match.group(1))
+                    if file_counter > max_counter:
+                        max_counter = file_counter
 
-                # Increment the counter by 1 to get the next available value
-                counter = max_counter + 1
-                output_process = None
+            # Increment the counter to get the next available value
+            counter = max_counter + 1
             file_suffix = f"_{counter:05}"
         else:
             counter = ''
             file_suffix = ''
+
+        # Construct meta_key for batch management
+        if meta_batch is not None:
+            if use_counter:
+                meta_key = f"{unique_id}_{counter}"
+            else:
+                meta_key = f"{unique_id}_{filename}"
+
+            # Check if the process is already in meta_batch.outputs
+            if meta_key in meta_batch.outputs:
+                (counter, output_process) = meta_batch.outputs[meta_key]
+            else:
+                output_process = None
+        else:
+            meta_key = None
             output_process = None
 
         # save first frame as png to keep metadata
@@ -433,7 +442,7 @@ class VideoCombine:
             else:
                 dimensions = f"{first_image.shape[1]}x{first_image.shape[0]}"
             if loop_count > 0:
-                loop_args = ["-vf", "loop=loop=" + str(loop_count)+":size=" + str(num_frames)]
+                loop_args = ["-vf", f"loop=loop={loop_count}:size={num_frames}"]
             else:
                 loop_args = []
             if pingpong:
@@ -511,8 +520,8 @@ class VideoCombine:
                     output_process.send(None)
                 except StopIteration:
                     pass
-                if meta_batch is not None:
-                    meta_batch.outputs.pop(unique_id)
+                if meta_batch is not None and meta_key is not None:
+                    meta_batch.outputs.pop(meta_key)
                     if len(meta_batch.outputs) == 0:
                         meta_batch.reset()
             else:
