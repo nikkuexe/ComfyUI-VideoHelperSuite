@@ -1396,18 +1396,8 @@ app.registerExtension({
             applyVHSAudioLinksFix(nodeType, nodeData, 0)
         } else if (nodeData?.name =="VHS_LoadVideoPath") {
             chainCallback(nodeType.prototype, "onNodeCreated", function() {
-                const pathWidget = this.widgets.find((w) => w.name === "video");
-                chainCallback(pathWidget, "callback", (value) => {
-                    let extension_index = value.lastIndexOf(".");
-                    let extension = value.slice(extension_index+1);
-                    let format = "video"
-                    if (["gif", "webp", "avif"].includes(extension)) {
-                        format = "image"
-                    }
-                    format += "/" + extension;
-                    let params = {filename : value, type: "path", format: format};
-                    this?.updateParameters(params, true);
-                });
+                // No need to interact with the 'video' widget since it doesn't exist in the UI.
+                // If there are any initializations specific to this node, you can add them here.
             });
             addLoadVideoCommon(nodeType, nodeData);
             addVAEOutputToggle(nodeType, nodeData);
