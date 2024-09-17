@@ -505,8 +505,8 @@ class VideoCombine:
                     output_process = ffmpeg_process(args, video_format, video_metadata, file_path, env)
                 #Proceed to first yield
                 output_process.send(None)
-                if meta_batch is not None:
-                    meta_batch.outputs[unique_id] = (counter, output_process)
+                if meta_batch is not None and meta_key is not None:
+                    meta_batch.outputs[meta_key] = (counter, output_process)
 
             for image in images:
                 pbar.update(1)
