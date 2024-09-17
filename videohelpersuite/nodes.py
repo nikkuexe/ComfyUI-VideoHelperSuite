@@ -340,10 +340,7 @@ class VideoCombine:
 
         # Construct meta_key for batch management
         if meta_batch is not None:
-            if use_counter:
-                meta_key = f"{unique_id}_{counter}"
-            else:
-                meta_key = f"{unique_id}_{filename}"
+            meta_key = f"{unique_id}_{filename}_{counter}"
 
             # Check if the process is already in meta_batch.outputs
             if meta_key in meta_batch.outputs:
