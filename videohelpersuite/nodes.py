@@ -357,8 +357,6 @@ class VideoCombine:
         # save first frame as png to keep metadata
         file = f"{filename}{file_suffix}.png"
         file_path = os.path.join(full_output_folder, file)
-        if not use_counter and os.path.exists(file_path):
-            os.remove(file_path)  # Overwrite existing file
         Image.fromarray(tensor_to_bytes(first_image)).save(
             file_path,
             pnginfo=metadata,
@@ -380,8 +378,6 @@ class VideoCombine:
                 image_kwargs['exif'] = exif
             file = f"{filename}{file_suffix}.{format_ext}"
             file_path = os.path.join(full_output_folder, file)
-            if not use_counter and os.path.exists(file_path):
-                os.remove(file_path)  # Overwrite existing file
             if pingpong:
                 images = to_pingpong(images)
             frames = map(lambda x : Image.fromarray(tensor_to_bytes(x)), images)
@@ -463,13 +459,11 @@ class VideoCombine:
                     i_pix_fmt = 'rgb24'
             file = f"{filename}{file_suffix}.{video_format['extension']}"
             file_path = os.path.join(full_output_folder, file)
-            if not use_counter and os.path.exists(file_path):
-                os.remove(file_path)  # Overwrite existing file
             bitrate_arg = []
             bitrate = video_format.get('bitrate')
             if bitrate is not None:
                 bitrate_arg = ["-b:v", str(bitrate) + "M" if video_format.get('megabit') == 'True' else str(bitrate) + "K"]
-            args = [ffmpeg_path, "-v", "error", "-f", "rawvideo", "-pix_fmt", i_pix_fmt,
+            args = [ffmpeg_path, "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", i_pix_fmt,
                     "-s", dimensions, "-r", str(frame_rate), "-i", "-"] \
                     + loop_args
 
@@ -543,8 +537,7 @@ class VideoCombine:
                 # Create audio file if input was provided
                 output_file_with_audio = f"{filename}{file_suffix}-audio.{video_format['extension']}"
                 output_file_with_audio_path = os.path.join(full_output_folder, output_file_with_audio)
-                if not use_counter and os.path.exists(output_file_with_audio_path):
-                    os.remove(output_file_with_audio_path)  # Overwrite existing file
+
                 if "audio_pass" not in video_format:
                     logger.warn("Selected video format does not have explicit audio support")
                     video_format["audio_pass"] = ["-c:a", "libopus"]
@@ -555,7 +548,7 @@ class VideoCombine:
                 #Reconsider forcing apad/shortest
                 channels = audio['waveform'].size(1)
                 min_audio_dur = total_frames_output / frame_rate + 1
-                mux_args = [ffmpeg_path, "-v", "error", "-n", "-i", file_path,
+                mux_args = [ffmpeg_path, "-v", "error", "-y", "-i", file_path,
                             "-ar", str(audio['sample_rate']), "-ac", str(channels),
                             "-f", "f32le", "-i", "-", "-c:v", "copy"] \
                             + video_format["audio_pass"] \
