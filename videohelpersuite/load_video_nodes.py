@@ -287,7 +287,7 @@ class LoadVideoPath:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "video": ("STRING"),
+                "video": ("STRING", {"force_input": True}),
                 "force_rate": ("INT", {"default": 0, "min": 0, "max": 60, "step": 1}),
                 "force_size": (
                     [

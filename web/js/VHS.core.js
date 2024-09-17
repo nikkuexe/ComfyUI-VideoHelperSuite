@@ -1325,10 +1325,6 @@ app.registerExtension({
                 let new_widgets = []
                 if (this.widgets) {
                     for (let w of this.widgets) {
-                        // Skip the 'video' widget specifically
-                        if (w.name === 'video') {
-                            continue;
-                        }
                         let input = this.constructor.nodeData.input
                         let config = input?.required[w.name] ?? input.optional[w.name]
                         if (!config) {
