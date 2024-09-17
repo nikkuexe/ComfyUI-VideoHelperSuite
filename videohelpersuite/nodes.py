@@ -215,6 +215,7 @@ class VideoCombine:
                 ),
                 "loop_count": ("INT", {"default": 0, "min": 0, "max": 100, "step": 1}),
                 "filename_prefix": ("STRING", {"default": "AnimateDiff"}),
+                "use_counter": ("BOOLEAN", {"default": True}),
                 "format": (["image/gif", "image/webp"] + ffmpeg_formats,),
                 "pingpong": ("BOOLEAN", {"default": False}),
                 "save_output": ("BOOLEAN", {"default": True}),
@@ -244,6 +245,7 @@ class VideoCombine:
         images=None,
         latents=None,
         filename_prefix="AnimateDiff",
+        use_counter=True,
         format="image/gif",
         pingpong=False,
         save_output=True,
@@ -315,31 +317,39 @@ class VideoCombine:
                 video_metadata[x] = extra_pnginfo[x]
         metadata.add_text("CreationTime", datetime.datetime.now().isoformat(" ")[:19])
 
-        if meta_batch is not None and unique_id in meta_batch.outputs:
-            (counter, output_process) = meta_batch.outputs[unique_id]
+        if use_counter:
+            if meta_batch is not None and unique_id in meta_batch.outputs:
+                (counter, output_process) = meta_batch.outputs[unique_id]
+            else:
+                # comfy counter workaround
+                max_counter = 0
+
+                # Loop through the existing files
+                matcher = re.compile(f"{re.escape(filename)}_(\\d+)\\D*\\..+", re.IGNORECASE)
+                for existing_file in os.listdir(full_output_folder):
+                    # Check if the file matches the expected format
+                    match = matcher.fullmatch(existing_file)
+                    if match:
+                        # Extract the numeric portion of the filename
+                        file_counter = int(match.group(1))
+                        # Update the maximum counter value if necessary
+                        if file_counter > max_counter:
+                            max_counter = file_counter
+
+                # Increment the counter by 1 to get the next available value
+                counter = max_counter + 1
+                output_process = None
+            file_suffix = f"_{counter:05}"
         else:
-            # comfy counter workaround
-            max_counter = 0
-
-            # Loop through the existing files
-            matcher = re.compile(f"{re.escape(filename)}_(\\d+)\\D*\\..+", re.IGNORECASE)
-            for existing_file in os.listdir(full_output_folder):
-                # Check if the file matches the expected format
-                match = matcher.fullmatch(existing_file)
-                if match:
-                    # Extract the numeric portion of the filename
-                    file_counter = int(match.group(1))
-                    # Update the maximum counter value if necessary
-                    if file_counter > max_counter:
-                        max_counter = file_counter
-
-            # Increment the counter by 1 to get the next available value
-            counter = max_counter + 1
+            counter = ''
+            file_suffix = ''
             output_process = None
 
         # save first frame as png to keep metadata
-        file = f"{filename}_{counter:05}.png"
+        file = f"{filename}{file_suffix}.png"
         file_path = os.path.join(full_output_folder, file)
+        if not use_counter and os.path.exists(file_path):
+            os.remove(file_path)  # Overwrite existing file
         Image.fromarray(tensor_to_bytes(first_image)).save(
             file_path,
             pnginfo=metadata,
@@ -359,8 +369,10 @@ class VideoCombine:
                 exif = Image.Exif()
                 exif[ExifTags.IFD.Exif] = {36867: datetime.datetime.now().isoformat(" ")[:19]}
                 image_kwargs['exif'] = exif
-            file = f"{filename}_{counter:05}.{format_ext}"
+            file = f"{filename}{file_suffix}.{format_ext}"
             file_path = os.path.join(full_output_folder, file)
+            if not use_counter and os.path.exists(file_path):
+                os.remove(file_path)  # Overwrite existing file
             if pingpong:
                 images = to_pingpong(images)
             frames = map(lambda x : Image.fromarray(tensor_to_bytes(x)), images)
@@ -440,8 +452,10 @@ class VideoCombine:
                     i_pix_fmt = 'rgba'
                 else:
                     i_pix_fmt = 'rgb24'
-            file = f"{filename}_{counter:05}.{video_format['extension']}"
+            file = f"{filename}{file_suffix}.{video_format['extension']}"
             file_path = os.path.join(full_output_folder, file)
+            if not use_counter and os.path.exists(file_path):
+                os.remove(file_path)  # Overwrite existing file
             bitrate_arg = []
             bitrate = video_format.get('bitrate')
             if bitrate is not None:
@@ -518,8 +532,10 @@ class VideoCombine:
                     pass
             if a_waveform is not None:
                 # Create audio file if input was provided
-                output_file_with_audio = f"{filename}_{counter:05}-audio.{video_format['extension']}"
+                output_file_with_audio = f"{filename}{file_suffix}-audio.{video_format['extension']}"
                 output_file_with_audio_path = os.path.join(full_output_folder, output_file_with_audio)
+                if not use_counter and os.path.exists(output_file_with_audio_path):
+                    os.remove(output_file_with_audio_path)  # Overwrite existing file
                 if "audio_pass" not in video_format:
                     logger.warn("Selected video format does not have explicit audio support")
                     video_format["audio_pass"] = ["-c:a", "libopus"]
@@ -629,7 +645,7 @@ class LoadAudioUpload:
         audio_file = folder_paths.get_annotated_filepath(strip_path(kwargs['audio']))
         if audio_file is None or validate_path(audio_file) != True:
             raise Exception("audio_file is not a valid path: " + audio_file)
-        
+
         return (get_audio(audio_file, start_time, duration),)
 
     @classmethod
@@ -832,7 +848,7 @@ class VideoInfo:
 
     def get_video_info(self, video_info):
         keys = ["fps", "frame_count", "duration", "width", "height"]
-        
+
         source_info = []
         loaded_info = []
 
@@ -866,7 +882,7 @@ class VideoInfoSource:
 
     def get_video_info(self, video_info):
         keys = ["fps", "frame_count", "duration", "width", "height"]
-        
+
         source_info = []
 
         for key in keys:
@@ -898,7 +914,7 @@ class VideoInfoLoaded:
 
     def get_video_info(self, video_info):
         keys = ["fps", "frame_count", "duration", "width", "height"]
-        
+
         loaded_info = []
 
         for key in keys:
