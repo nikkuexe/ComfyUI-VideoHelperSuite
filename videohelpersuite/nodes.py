@@ -516,8 +516,8 @@ class VideoCombine:
                     output_process.send(None)
                 except StopIteration:
                     pass
-                if meta_batch is not None and meta_key is not None:
-                    meta_batch.outputs.pop(meta_key)
+                if meta_batch is not None:
+                    meta_batch.outputs.pop(meta_key, None)  # Use pop with default to avoid KeyError
                     if len(meta_batch.outputs) == 0:
                         meta_batch.reset()
             else:
